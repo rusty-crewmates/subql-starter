@@ -53,3 +53,5 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Blockchain data files created by SubQuery
+.data
