@@ -24,8 +24,8 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "@subql/contract-processors": "../subql/packages/contract-processors",
-    "@subql/types": "../subql/packages/types",
+    "@subql/contract-processors": "latest",
+    "@subql/types": "latest",
     "ethers": "^5.5.0"
   }
 }
