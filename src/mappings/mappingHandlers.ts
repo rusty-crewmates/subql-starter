@@ -1,9 +1,81 @@
 // Copyright 2020-2022 OnFinality Limited authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 import { AvalancheBlockEntity, AvalancheEventEntity, AvalancheTransactionEntity } from "../types";
+// Copyright 2020-2022 OnFinality Limited authors & contributors
+// SPDX-License-Identifier: Apache-2.0
+
+import {ApiPromise} from '@polkadot/api';
+import {RegistryTypes} from '@polkadot/types/types';
+
+
+export enum SubqlHandlerKind {
+  Block = 'BlockHandler',
+  Call = 'CallHandler',
+  Event = 'EventHandler',
+}
+export type SpecVersionRange = [number, number];
+
+interface SubqlBaseHandlerFilter {
+  specVersion?: SpecVersionRange;
+}
+
+export type SubqlBlockFilter = SubqlBaseHandlerFilter;
+
+export interface SubqlEventFilter extends SubqlBaseHandlerFilter {
+  module?: string;
+  method?: string;
+}
+
+export interface SubqlCallFilter extends SubqlEventFilter {
+  success?: boolean;
+  from?: string;
+  to?: string;
+}
+
 
 // TODO: those 3 types are duplicate from subql/types
 // We have to find a way to import them from our version of the package
+
+import {Extrinsic, EventRecord, SignedBlock} from '@polkadot/types/interfaces';
+
+export interface SubstrateBlock extends SignedBlock {
+  // parent block's spec version, can be used to decide the correct metadata that should be used for this block.
+  specVersion: number;
+  timestamp: Date;
+  events: EventRecord[];
+}
+
+export interface SubstrateExtrinsic {
+  // index in the block
+  idx: number;
+  extrinsic: Extrinsic;
+  block: SubstrateBlock;
+  events: EventRecord[];
+  success: boolean;
+}
+
+export interface SubstrateEvent extends EventRecord {
+  // index in the block
+  idx: number;
+  extrinsic?: SubstrateExtrinsic;
+  block: SubstrateBlock;
+}
+
+export interface AvalancheCallFilter {
+  from?: string;
+  to?: string;
+  function?: string;
+}
+
+export interface AvalancheEventFilter {
+  address?: string;
+  topics?: Array<string | null | undefined>;
+}
+
+export type AlgorandBlock = Record<string, any>;
+export type AlgorandTransaction = Record<string, any>; // TODO
+export type AlgorandEvent = Record<string, any>; // TODO
+
 export type AvalancheBlock = {
   difficulty: string;
   extraData: string;
@@ -55,18 +127,38 @@ export type AvalancheEvent = {
   topics: string[];
 };
 
-// TODO: same for this interface
-export interface BlockWrapper {
-  getBlock: () => AvalancheBlock;
-  getBlockHeight: () => number;
-  getHash: () => string;
-  getCalls?: (filters?: any) => | AvalancheTransaction[];
-  getEvents: () => AvalancheEvent[];
-  getVersion: () => number;
+export interface BlockWrapper<
+  B extends SubstrateBlock | AlgorandBlock | AvalancheBlock = SubstrateBlock | AlgorandBlock | AvalancheBlock,
+  C extends SubstrateExtrinsic | AlgorandTransaction | AvalancheTransaction =
+    | SubstrateExtrinsic
+    | AlgorandTransaction
+    | AvalancheTransaction,
+  E extends SubstrateEvent | AlgorandEvent | AvalancheEvent = SubstrateEvent | AlgorandEvent | AvalancheEvent,
+  CF extends SubqlCallFilter | AvalancheCallFilter = SubqlCallFilter | AvalancheCallFilter,
+  EF extends SubqlEventFilter | AvalancheEventFilter = SubqlEventFilter | AvalancheEventFilter
+> {
+  block: B;
+  blockHeight: number;
+  specVersion?: number;
+  hash: string;
+  calls?: (filters?: CF | CF[]) => C[];
+  events?: (filters?: EF | EF[]) => E[];
+}
+
+export interface AvalancheBlockWrapper
+  extends BlockWrapper<
+    AvalancheBlock,
+    AvalancheTransaction,
+    AvalancheEvent,
+    AvalancheCallFilter,
+    AvalancheEventFilter
+  > {
+  get: (objects: string[]) => Record<string, any>;
+  getTransactions: (filters?: string[]) => Record<string, any>;
 }
 
 export async function handleBlock(block: BlockWrapper): Promise<void> {
-  let avalancheBlock: AvalancheBlock = block.getBlock();
+  let avalancheBlock: AvalancheBlock = block.block as AvalancheBlock;
   const blockRecord = new AvalancheBlockEntity(avalancheBlock.hash);
 
   blockRecord.difficulty = avalancheBlock.difficulty;

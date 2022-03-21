@@ -28,5 +28,11 @@ dataSources:
           kind: BlockHandler
         - handler: handleCall
           kind: CallHandler
+          filter:
+            - { to: '0x640440c1a691dc824c89f92a856848a9013d3784' }
+            - { to: '0x95042281af6566fc6748f28263ceeecaefb4d2b4' }
         - handler: handleEvent
           kind: EventHandler
+          filter:
+            - { address: '0x640440c1a691dc824c89f92a856848a9013d3784' }
+            - { address: '0x95042281af6566fc6748f28263ceeecaefb4d2b4' }
